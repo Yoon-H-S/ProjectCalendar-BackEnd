@@ -10,4 +10,6 @@ public interface CalendarService {
     List<RestDayDto> getRestDay(String year) throws Exception;
     /** 음력 조회 */
     LunarDto getLunarDate(String year, String month, String day) throws Exception;
+    /** 유저 번호 조회, 없다면 생성 */
+    int getUserNumber(String token) throws Exception;
 }

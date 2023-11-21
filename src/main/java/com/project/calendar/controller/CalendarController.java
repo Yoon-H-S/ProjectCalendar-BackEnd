@@ -4,10 +4,7 @@ import com.project.calendar.dto.LunarDto;
 import com.project.calendar.dto.RestDayDto;
 import com.project.calendar.service.CalendarService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -40,5 +37,19 @@ public class CalendarController {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @PostMapping("kakao-login")
+    public int getUserNumber(@RequestParam String token) {
+        try {
+            return cs.getUserNumber(token);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @GetMapping("kakao-api")
+    public void KakaoRedirectUri() {
+        System.out.println("카카오 로그인 시도");
     }
 }

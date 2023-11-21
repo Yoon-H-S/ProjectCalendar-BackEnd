@@ -1,13 +1,21 @@
 package com.project.calendar.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.project.calendar.dto.LunarDto;
 import com.project.calendar.dto.RestDayDto;
+import com.project.calendar.entity.UserEntity;
+import com.project.calendar.repository.UserRepository;
 import com.project.calendar.service.CalendarService;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -18,13 +26,19 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CalendarServiceImpl implements CalendarService {
     private final Environment env;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    public CalendarServiceImpl(Environment env) {
+    UserRepository userRepository;
+
+    @Autowired
+    public CalendarServiceImpl(Environment env, UserRepository userRepository) {
         this.env = env;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -120,5 +134,26 @@ public class CalendarServiceImpl implements CalendarService {
                 .build();
 
         return lunarDto;
+    }
+
+    @Override
+    public int getUserNumber(String token) throws Exception {
+        String resourceUri = "https://kapi.kakao.com/v2/user/me";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+
+        HttpEntity entity = new HttpEntity(headers);
+        JsonNode responseNode = restTemplate.exchange(resourceUri, HttpMethod.GET, entity, JsonNode.class).getBody();
+
+        JsonNode kakaoAccount = responseNode.get("kakao_account");
+        String kakaoId = kakaoAccount.get("email").asText();
+
+        Optional<UserEntity> optionalUser = userRepository.findByUserId(kakaoId);
+        if(optionalUser.isPresent()) {
+            return optionalUser.get().getUserNum();
+        } else {
+            return userRepository.save(UserEntity.builder().userId(kakaoId).build()).getUserNum();
+        }
     }
 }
