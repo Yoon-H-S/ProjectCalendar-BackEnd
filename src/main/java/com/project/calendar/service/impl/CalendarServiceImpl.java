@@ -3,7 +3,9 @@ package com.project.calendar.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.project.calendar.dto.LunarDto;
 import com.project.calendar.dto.RestDayDto;
+import com.project.calendar.dto.ScheduleDto;
 import com.project.calendar.entity.UserEntity;
+import com.project.calendar.repository.ScheduleRepository;
 import com.project.calendar.repository.UserRepository;
 import com.project.calendar.service.CalendarService;
 import org.json.simple.JSONArray;
@@ -34,11 +36,13 @@ public class CalendarServiceImpl implements CalendarService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     UserRepository userRepository;
+    ScheduleRepository scheduleRepository;
 
     @Autowired
-    public CalendarServiceImpl(Environment env, UserRepository userRepository) {
+    public CalendarServiceImpl(Environment env, UserRepository userRepository, ScheduleRepository scheduleRepository) {
         this.env = env;
         this.userRepository = userRepository;
+        this.scheduleRepository = scheduleRepository;
     }
 
     @Override
@@ -155,5 +159,10 @@ public class CalendarServiceImpl implements CalendarService {
         } else {
             return userRepository.save(UserEntity.builder().userId(kakaoId).build()).getUserNum();
         }
+    }
+
+    @Override
+    public int addSchedule(ScheduleDto dto) {
+        return scheduleRepository.save(dto.toEntity()).getScheduleNum();
     }
 }
