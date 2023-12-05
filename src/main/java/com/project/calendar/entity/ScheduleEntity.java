@@ -1,5 +1,6 @@
 package com.project.calendar.entity;
 
+import com.project.calendar.dto.ScheduleDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,4 +46,22 @@ public class ScheduleEntity {
     private String file;
     @Column(name = "location")
     private String location;
+
+    public ScheduleDto toDto() {
+        return ScheduleDto.builder()
+                .scheduleNum(scheduleNum)
+                .userNum(userNum)
+                .title(title)
+                .start(start)
+                .end(end)
+                .lunar(lunar)
+                .memo(memo)
+                .notify(notify)
+                .repType(repType)
+                .repWeek(repWeek)
+                .repEnd(repEnd)
+                .file(file)
+                .location(location)
+                .build();
+    }
 }

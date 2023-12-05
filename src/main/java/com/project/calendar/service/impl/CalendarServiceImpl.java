@@ -1,9 +1,10 @@
 package com.project.calendar.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.project.calendar.dto.LunarDto;
+import com.project.calendar.dto.MarkerDto;
 import com.project.calendar.dto.RestDayDto;
 import com.project.calendar.dto.ScheduleDto;
+import com.project.calendar.entity.ScheduleEntity;
 import com.project.calendar.entity.UserEntity;
 import com.project.calendar.repository.ScheduleRepository;
 import com.project.calendar.repository.UserRepository;
@@ -26,7 +27,9 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +37,7 @@ import java.util.Optional;
 public class CalendarServiceImpl implements CalendarService {
     private final Environment env;
     private final RestTemplate restTemplate = new RestTemplate();
+    private static final String[] colorType = {"#6A5ACD", "#A9A96E", "#9370DB", "#B8860B", "#556B2F", "#8B87B3", "transparent"};
 
     UserRepository userRepository;
     ScheduleRepository scheduleRepository;
@@ -43,6 +47,71 @@ public class CalendarServiceImpl implements CalendarService {
         this.env = env;
         this.userRepository = userRepository;
         this.scheduleRepository = scheduleRepository;
+    }
+
+    @Override
+    public MarkerDto getScheduleList(int userNum) {
+
+        List<ScheduleEntity> scheduleEntityList = scheduleRepository.findByUserNumOrderByStart(userNum);
+
+        MarkerDto dto = new MarkerDto();
+        int type = 0;
+        int index = 0;
+        for(ScheduleEntity entity : scheduleEntityList) {
+            LocalDate start = LocalDate.parse(entity.getStart().substring(0, 10));
+            LocalDate end = LocalDate.parse(entity.getEnd().substring(0, 10));
+            for(LocalDate i = start; !i.isAfter(end); i = i.plusDays(1)) {
+                MarkerDto.Marker marker = dto.getDay(i.toString());
+
+                if(i.equals(start)) { // 이번 일정의 첫번째 칸(날짜)이라면
+                    MarkerDto.MarkerPeriod period = new MarkerDto.MarkerPeriod(colorType[type % 5], entity.getTitle(), i.equals(end));
+                    if (marker != null) { // 이미 칸(날짜)이 있다면
+                        boolean isEmpty = false;
+                        for(int j = 0; j < marker.periodsSize(); j++) { // 첫번째 줄(일정)부터 확인하면서
+                            MarkerDto.MarkerPeriod indexPeriod = marker.indexPeriod(j);
+                            if(indexPeriod.getColor().equals("transparent")) { // 그 줄(일정)이 공백일정이라면
+                                marker.modifyPeriods(j, period); // 이번 일정으로 교체
+                                isEmpty = true;
+                            }
+                        }
+                        if(!isEmpty) {
+                            marker.addPeriods(period); // period 추가
+                        }
+                    } else { // 칸(날짜)이 존재하지 않는 경우
+                        marker = new MarkerDto.Marker(); // 새로운 객체를 생성하여 추가
+                        marker.addPeriods(period);
+                        dto.addDay(i.toString(), marker);
+                    }
+                    index = marker.periodsIndex(period); // 이번 일정의 줄 구하기
+                } else { // 이번 일정의 첫번째 칸(날짜)이 아니면
+                    MarkerDto.MarkerPeriod period = new MarkerDto.MarkerPeriod(colorType[type % 5], null, i.equals(end));
+                    if(marker != null) { // 이미 칸(날짜)이 있다면 period 추가
+                        if(marker.periodsSize() < index) { // 이번 일정이 이 칸의 첫번째 줄(일정)이 아니라면
+                            for(int j = marker.periodsSize(); j < index; j++) { // 첫번째 줄(일정)부터 확인하면서
+                                if(marker.indexPeriod(j) == null) { // 그 줄(일정)에 아무것도 없다면 공백일정 생성
+                                    marker.addPeriods(new MarkerDto.MarkerPeriod(colorType[6], null, false));
+                                }
+                            }
+                        }
+                        marker.addPeriods(period);
+                    } else { // 칸(날짜)이 존재하지 않는 경우
+                        marker = new MarkerDto.Marker(); // 새로운 객체를 생성하여 추가
+                        if(marker.periodsSize() < index) { // 이번 일정이 이 칸의 첫번째 줄(일정)이 아니라면
+                            for(int j = marker.periodsSize(); j < index; j++) { // 첫번째 줄(일정)부터 확인하면서
+                                if(marker.indexPeriod(j) == null) { // 그 줄(일정)에 아무것도 없다면 공백일정 생성
+                                    marker.addPeriods(new MarkerDto.MarkerPeriod(colorType[6], null, false));
+                                }
+                            }
+                        }
+                        marker.addPeriods(period);
+                        dto.addDay(i.toString(), marker);
+                    }
+                }
+            }
+            type++;
+        }
+
+        return dto;
     }
 
     @Override
@@ -94,53 +163,6 @@ public class CalendarServiceImpl implements CalendarService {
     }
 
     @Override
-    public LunarDto getLunarDate(String year, String month, String day) throws Exception {
-        StringBuilder urlBuilder = new StringBuilder("http://apis.data.go.kr/B090041/openapi/service/LrsrCldInfoService/getLunCalInfo"); // URL
-        urlBuilder.append("?" + URLEncoder.encode("serviceKey","UTF-8") + "=" + env.getProperty("serviceKey")); // 공공데이터포털 개인 인증키
-        urlBuilder.append("&" + URLEncoder.encode("_type","UTF-8") + "=" + URLEncoder.encode("json", "UTF-8")); // 받을 데이터 타입
-        urlBuilder.append("&" + URLEncoder.encode("solYear","UTF-8") + "=" + URLEncoder.encode(year, "UTF-8")); // 조회할 년도
-        urlBuilder.append("&" + URLEncoder.encode("solMonth","UTF-8") + "=" + URLEncoder.encode(month, "UTF-8")); // 조회할 달
-        urlBuilder.append("&" + URLEncoder.encode("solDay","UTF-8") + "=" + URLEncoder.encode(day, "UTF-8")); // 조회할 날
-        URL url = new URL(urlBuilder.toString());
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Content-type", "application/json");
-        System.out.println("Lunar-Date Response code: " + conn.getResponseCode());
-        BufferedReader rd;
-        if(conn.getResponseCode() >= 200 && conn.getResponseCode() <= 300) {
-            rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        } else {
-            rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-        }
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = rd.readLine()) != null) {
-            sb.append(line);
-        }
-        rd.close();
-        conn.disconnect();
-
-        // JSON 파싱 후 리스트에 담기
-        JSONParser jsonParser = new JSONParser();
-        JSONObject jo = (JSONObject)jsonParser.parse(sb.toString());
-        jo = (JSONObject) ((JSONObject)((JSONObject)((JSONObject)jo.get("response")).get("body")).get("items")).get("item");
-
-        String lunYear = jo.get("lunYear").toString();
-        String lunMonth = jo.get("lunMonth").toString();
-        String lunDay = jo.get("lunDay").toString();
-        String leap = jo.get("lunLeapmonth").toString();
-
-        LunarDto lunarDto = new LunarDto().builder()
-                .lunYear(lunYear)
-                .lunMonth(lunMonth)
-                .lunDay(lunDay)
-                .leap(leap)
-                .build();
-
-        return lunarDto;
-    }
-
-    @Override
     public int getUserNumber(String token) throws Exception {
         String resourceUri = "https://kapi.kakao.com/v2/user/me";
 
@@ -163,6 +185,9 @@ public class CalendarServiceImpl implements CalendarService {
 
     @Override
     public int addSchedule(ScheduleDto dto) {
+        dto.setStart(dto.getStart().substring(0, 10) + " " + dto.getStart().substring(11, 19));
+        dto.setEnd(dto.getEnd().substring(0, 10) + " " + dto.getEnd().substring(11, 19));
+
         return scheduleRepository.save(dto.toEntity()).getScheduleNum();
     }
 }

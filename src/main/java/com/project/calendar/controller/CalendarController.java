@@ -1,7 +1,9 @@
 package com.project.calendar.controller;
 
 import com.project.calendar.dto.LunarDto;
+import com.project.calendar.dto.MarkerDto;
 import com.project.calendar.dto.RestDayDto;
+import com.project.calendar.dto.ScheduleDto;
 import com.project.calendar.service.CalendarService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,26 +21,6 @@ public class CalendarController {
         this.cs = cs;
     }
 
-    @GetMapping("/rest-day")
-    public List<RestDayDto> getRestDay(@RequestParam String year) {
-        System.out.println("공휴일 요청");
-        try {
-            return cs.getRestDay(year);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @GetMapping("lunar-date")
-    public LunarDto getLunarDate(@RequestParam String year, @RequestParam String month, @RequestParam String day) {
-        System.out.println("음력 요청");
-        try {
-            return cs.getLunarDate(year, month, day);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @PostMapping("kakao-login")
     public int getUserNumber(@RequestParam String token) {
         try {
@@ -51,5 +33,25 @@ public class CalendarController {
     @GetMapping("kakao-api")
     public void KakaoRedirectUri() {
         System.out.println("카카오 로그인 시도");
+    }
+
+    @GetMapping("schedule-list")
+    public MarkerDto getScheduleList(@RequestParam int userNum) {
+        return cs.getScheduleList(userNum);
+    }
+
+    @GetMapping("rest-day")
+    public List<RestDayDto> getRestDay(@RequestParam String year) {
+        System.out.println("공휴일 요청");
+        try {
+            return cs.getRestDay(year);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @PostMapping("add-schedule")
+    public int addSchedule(@RequestBody ScheduleDto dto) {
+        return cs.addSchedule(dto);
     }
 }

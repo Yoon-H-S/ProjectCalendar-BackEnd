@@ -38,7 +38,7 @@ public class ScheduleDto {
                 .notify(notify)
                 .repType(repType)
                 .repWeek(repWeek)
-                .repEnd(repWeek)
+                .repEnd(repEnd)
                 .file(file)
                 .location(location)
                 .build();
