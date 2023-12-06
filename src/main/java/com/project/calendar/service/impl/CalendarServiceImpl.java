@@ -29,7 +29,6 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +36,6 @@ import java.util.Optional;
 public class CalendarServiceImpl implements CalendarService {
     private final Environment env;
     private final RestTemplate restTemplate = new RestTemplate();
-    private static final String[] colorType = {"#6A5ACD", "#A9A96E", "#9370DB", "#B8860B", "#556B2F", "#8B87B3", "transparent"};
 
     UserRepository userRepository;
     ScheduleRepository scheduleRepository;
@@ -64,7 +62,7 @@ public class CalendarServiceImpl implements CalendarService {
                 MarkerDto.Marker marker = dto.getDay(i.toString());
 
                 if(i.equals(start)) { // 이번 일정의 첫번째 칸(날짜)이라면
-                    MarkerDto.MarkerPeriod period = new MarkerDto.MarkerPeriod(colorType[type % 5], entity.getTitle(), i.equals(end));
+                    MarkerDto.MarkerPeriod period = new MarkerDto.MarkerPeriod("#5A61E0", entity.getTitle(), i.equals(end));
                     if (marker != null) { // 이미 칸(날짜)이 있다면
                         boolean isEmpty = false;
                         for(int j = 0; j < marker.periodsSize(); j++) { // 첫번째 줄(일정)부터 확인하면서
@@ -84,12 +82,12 @@ public class CalendarServiceImpl implements CalendarService {
                     }
                     index = marker.periodsIndex(period); // 이번 일정의 줄 구하기
                 } else { // 이번 일정의 첫번째 칸(날짜)이 아니면
-                    MarkerDto.MarkerPeriod period = new MarkerDto.MarkerPeriod(colorType[type % 5], null, i.equals(end));
+                    MarkerDto.MarkerPeriod period = new MarkerDto.MarkerPeriod("#5A61E0", null, i.equals(end));
                     if(marker != null) { // 이미 칸(날짜)이 있다면 period 추가
                         if(marker.periodsSize() < index) { // 이번 일정이 이 칸의 첫번째 줄(일정)이 아니라면
                             for(int j = marker.periodsSize(); j < index; j++) { // 첫번째 줄(일정)부터 확인하면서
                                 if(marker.indexPeriod(j) == null) { // 그 줄(일정)에 아무것도 없다면 공백일정 생성
-                                    marker.addPeriods(new MarkerDto.MarkerPeriod(colorType[6], null, false));
+                                    marker.addPeriods(new MarkerDto.MarkerPeriod("transparent", null, false));
                                 }
                             }
                         }
@@ -99,7 +97,7 @@ public class CalendarServiceImpl implements CalendarService {
                         if(marker.periodsSize() < index) { // 이번 일정이 이 칸의 첫번째 줄(일정)이 아니라면
                             for(int j = marker.periodsSize(); j < index; j++) { // 첫번째 줄(일정)부터 확인하면서
                                 if(marker.indexPeriod(j) == null) { // 그 줄(일정)에 아무것도 없다면 공백일정 생성
-                                    marker.addPeriods(new MarkerDto.MarkerPeriod(colorType[6], null, false));
+                                    marker.addPeriods(new MarkerDto.MarkerPeriod("transparent", null, false));
                                 }
                             }
                         }
@@ -184,10 +182,121 @@ public class CalendarServiceImpl implements CalendarService {
     }
 
     @Override
-    public int addSchedule(ScheduleDto dto) {
-        dto.setStart(dto.getStart().substring(0, 10) + " " + dto.getStart().substring(11, 19));
-        dto.setEnd(dto.getEnd().substring(0, 10) + " " + dto.getEnd().substring(11, 19));
+    public void addSchedule(ScheduleDto dto) {
+        if(dto.getRepType() != null) {
+            LocalDate repeatStartDate = LocalDate.parse(dto.getStart().substring(0, 10));
 
-        return scheduleRepository.save(dto.toEntity()).getScheduleNum();
+            if (dto.getRepEnd() == null) {
+                dateRepeatSchedule(repeatStartDate, LocalDate.of(2030, 12, 31), dto); // 기본값: 2030년까지 반복
+            } else if (dto.getRepEnd().length() > 4) {
+                dateRepeatSchedule(repeatStartDate, LocalDate.parse(dto.getRepEnd()), dto);
+            } else {
+                countRepeatSchedule(repeatStartDate, Integer.parseInt(dto.getRepEnd()), dto);
+            }
+
+        } else {
+            dto.setStart(dto.getStart().substring(0, 10) + " " + dto.getStart().substring(11, 19));
+            dto.setEnd(dto.getEnd().substring(0, 10) + " " + dto.getEnd().substring(11, 19));
+
+            scheduleRepository.save(dto.toEntity());
+        }
+    }
+
+    private void dateRepeatSchedule(LocalDate startDate, LocalDate endDate, ScheduleDto dto) {
+        LocalDate scheduleEnd = LocalDate.parse(dto.getEnd().substring(0, 10));
+
+        switch (dto.getRepType()) {
+            case "1":
+                while (!startDate.isAfter(endDate)) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusDays(1);
+                    scheduleEnd = scheduleEnd.plusDays(1);
+                }
+                break;
+            case "2":
+                while (!startDate.isAfter(endDate)) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusWeeks(1);
+                    scheduleEnd = scheduleEnd.plusWeeks(1);
+                }
+                break;
+            case "3":
+                while (!startDate.isAfter(endDate)) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusMonths(1);
+                    scheduleEnd = scheduleEnd.plusMonths(1);
+                }
+                break;
+            case "4":
+                while (!startDate.isAfter(endDate)) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusYears(1);
+                    scheduleEnd = scheduleEnd.plusYears(1);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("잘못된 일정 타입");
+        }
+    }
+
+    private void countRepeatSchedule(LocalDate startDate, int endCount, ScheduleDto dto) {
+        LocalDate scheduleEnd = LocalDate.parse(dto.getEnd().substring(0, 10));
+
+        switch (dto.getRepType()) {
+            case "1":
+                for(int i = 0; i < endCount; i++) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusDays(1);
+                    scheduleEnd = scheduleEnd.plusDays(1);
+                }
+                break;
+            case "2":
+                for(int i = 0; i < endCount; i++) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusWeeks(1);
+                    scheduleEnd = scheduleEnd.plusWeeks(1);
+                }
+                break;
+            case "3":
+                for(int i = 0; i < endCount; i++) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusMonths(1);
+                    scheduleEnd = scheduleEnd.plusMonths(1);
+                }
+                break;
+            case "4":
+                for(int i = 0; i < endCount; i++) {
+                    dto.setStart(startDate + " " + dto.getStart().substring(11, 19));
+                    dto.setEnd(scheduleEnd + " " + dto.getEnd().substring(11, 19));
+
+                    scheduleRepository.save(dto.toEntity());
+                    startDate = startDate.plusYears(1);
+                    scheduleEnd = scheduleEnd.plusYears(1);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("잘못된 일정 타입");
+        }
     }
 }

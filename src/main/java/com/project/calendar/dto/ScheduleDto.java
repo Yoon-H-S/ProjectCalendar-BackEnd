@@ -21,7 +21,6 @@ public class ScheduleDto {
     private String memo;
     private Integer notify;
     private String repType;
-    private String repWeek;
     private String repEnd;
     private String file;
     private String location;
@@ -36,9 +35,6 @@ public class ScheduleDto {
                 .lunar(lunar)
                 .memo(memo)
                 .notify(notify)
-                .repType(repType)
-                .repWeek(repWeek)
-                .repEnd(repEnd)
                 .file(file)
                 .location(location)
                 .build();

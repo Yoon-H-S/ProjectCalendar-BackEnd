@@ -1,6 +1,5 @@
 package com.project.calendar.controller;
 
-import com.project.calendar.dto.LunarDto;
 import com.project.calendar.dto.MarkerDto;
 import com.project.calendar.dto.RestDayDto;
 import com.project.calendar.dto.ScheduleDto;
@@ -51,7 +50,7 @@ public class CalendarController {
     }
 
     @PostMapping("add-schedule")
-    public int addSchedule(@RequestBody ScheduleDto dto) {
-        return cs.addSchedule(dto);
+    public void addSchedule(@RequestBody ScheduleDto dto) {
+        cs.addSchedule(dto);
     }
 }

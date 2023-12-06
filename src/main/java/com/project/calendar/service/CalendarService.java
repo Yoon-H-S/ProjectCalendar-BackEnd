@@ -1,6 +1,5 @@
 package com.project.calendar.service;
 
-import com.project.calendar.dto.LunarDto;
 import com.project.calendar.dto.MarkerDto;
 import com.project.calendar.dto.RestDayDto;
 import com.project.calendar.dto.ScheduleDto;
@@ -15,5 +14,5 @@ public interface CalendarService {
     /** 유저 번호 조회, 없다면 생성 */
     int getUserNumber(String token) throws Exception;
     /** 일정 추가 */
-    int addSchedule(ScheduleDto dto);
+    void addSchedule(ScheduleDto dto);
 }

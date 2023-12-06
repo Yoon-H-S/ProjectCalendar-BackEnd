@@ -36,12 +36,6 @@ public class ScheduleEntity {
     private String memo;
     @Column(name = "notify")
     private Integer notify;
-    @Column(name = "repetition_type")
-    private String repType;
-    @Column(name = "repetition_week")
-    private String repWeek;
-    @Column(name = "repetition_end")
-    private String repEnd;
     @Column(name = "file")
     private String file;
     @Column(name = "location")
@@ -57,9 +51,6 @@ public class ScheduleEntity {
                 .lunar(lunar)
                 .memo(memo)
                 .notify(notify)
-                .repType(repType)
-                .repWeek(repWeek)
-                .repEnd(repEnd)
                 .file(file)
                 .location(location)
                 .build();
